@@ -1,0 +1,385 @@
+-- LocalScript → put DIRECTLY in StarterGui
+-- Jump + Speed + WallHack (Walk Through Walls, NOT Floor) + Fixed X Button
+
+local Players          = game:GetService("Players")
+local TweenService     = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService       = game:GetService("RunService")
+local Workspace        = game:GetService("Workspace")
+
+local player  = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+print("[GUI] Script started")
+
+-------------------------------------------------
+-- CREATE ScreenGui
+-------------------------------------------------
+local GUI_NAME = "WallHackGUI"
+local gui = playerGui:FindFirstChild(GUI_NAME)
+if not gui then
+    gui = Instance.new("ScreenGui")
+    gui.Name = GUI_NAME
+    gui.ResetOnSpawn = true
+    gui.Enabled = true
+    gui.Parent = playerGui
+    print("[GUI] Created ScreenGui")
+end
+
+-------------------------------------------------
+-- MAIN FRAME (never destroys)
+-------------------------------------------------
+local mainFrame = gui:FindFirstChild("MainFrame")
+if not mainFrame then
+    mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 260, 0, 120)
+    mainFrame.Position = UDim2.new(0.5, -130, 0.5, -60)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(45,45,45)
+    mainFrame.BorderSizePixel = 2
+    mainFrame.BorderColor3 = Color3.fromRGB(255,255,255)
+    mainFrame.Visible = true
+    mainFrame.Parent = gui
+end
+
+-- Title bar (drag handle)
+local titleBar = mainFrame:FindFirstChild("TitleBar")
+if not titleBar then
+    titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1,0,0,30)
+    titleBar.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    titleBar.Parent = mainFrame
+end
+
+local titleLabel = titleBar:FindFirstChild("TitleLabel")
+if not titleLabel then
+    titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "TitleLabel"
+    titleLabel.Size = UDim2.new(1,-30,1,0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "XJSW"
+    titleLabel.TextColor3 = Color3.fromRGB(255,255,255)
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 16
+    titleLabel.Parent = titleBar
+end
+
+-- X BUTTON (closes mini-frame only)
+local closeBtn = titleBar:FindFirstChild("CloseBtn")
+if not closeBtn then
+    closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseBtn"
+    closeBtn.Size = UDim2.new(0,30,0,30)
+    closeBtn.Position = UDim2.new(1,-30,0,0)
+    closeBtn.BackgroundTransparency = 1
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255,80,80)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 18
+    closeBtn.Parent = titleBar
+end
+
+-- JUMP BUTTON
+local jumpBtn = mainFrame:FindFirstChild("JumpBtn")
+if not jumpBtn then
+    jumpBtn = Instance.new("TextButton")
+    jumpBtn.Name = "JumpBtn"
+    jumpBtn.Size = UDim2.new(0,70,0,50)
+    jumpBtn.Position = UDim2.new(0,10,1,-70)
+    jumpBtn.BackgroundColor3 = Color3.fromRGB(0,170,255)
+    jumpBtn.Text = "Jump"
+    jumpBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    jumpBtn.Font = Enum.Font.GothamBold
+    jumpBtn.TextSize = 16
+    jumpBtn.Parent = mainFrame
+end
+
+-- SPEED BUTTON
+local speedBtn = mainFrame:FindFirstChild("SpeedBtn")
+if not speedBtn then
+    speedBtn = Instance.new("TextButton")
+    speedBtn.Name = "SpeedBtn"
+    speedBtn.Size = UDim2.new(0,70,0,50)
+    speedBtn.Position = UDim2.new(0.5,-35,1,-70)
+    speedBtn.BackgroundColor3 = Color3.fromRGB(255,170,0)
+    speedBtn.Text = "Speed"
+    speedBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    speedBtn.Font = Enum.Font.GothamBold
+    speedBtn.TextSize = 16
+    speedBtn.Parent = mainFrame
+end
+
+-- WALLHACK BUTTON (Red = OFF, Green = ON)
+local wallBtn = mainFrame:FindFirstChild("WallBtn")
+if not wallBtn then
+    wallBtn = Instance.new("TextButton")
+    wallBtn.Name = "WallBtn"
+    wallBtn.Size = UDim2.new(0,70,0,50)
+    wallBtn.Position = UDim2.new(1,-80,1,-70)
+    wallBtn.BackgroundColor3 = Color3.fromRGB(200,0,0)  -- RED = OFF
+    wallBtn.Text = "WallHack"
+    wallBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    wallBtn.Font = Enum.Font.GothamBold
+    wallBtn.TextSize = 14
+    wallBtn.Parent = mainFrame
+end
+
+-------------------------------------------------
+-- DRAG FUNCTION
+-------------------------------------------------
+local function makeDraggable(frame, handle)
+    local dragging = false
+    local dragInput, startPos, startFramePos
+
+    local function update(input)
+        local delta = input.Position - startPos
+        frame.Position = UDim2.new(
+            startFramePos.X.Scale,
+            startFramePos.X.Offset + delta.X,
+            startFramePos.Y.Scale,
+            startFramePos.Y.Offset + delta.Y
+        )
+    end
+
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            startPos = input.Position
+            startFramePos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            update(input)
+        end
+    end)
+end
+
+makeDraggable(mainFrame, titleBar)
+
+-------------------------------------------------
+-- WALLHACK (NoClip) - ONLY ACTIVE WHEN GREEN
+-------------------------------------------------
+local wallhackEnabled = false
+local originalCanCollide = {}
+local floorParts = {}
+local noclipConnection
+
+local function isFloor(part)
+    if not part.Parent then return false end
+    local pos = part.Position
+    local size = part.Size
+    return pos.Y < 10 and (size.X * size.Z > 100)
+end
+
+local function enableWallHack()
+    if wallhackEnabled then return end
+    wallhackEnabled = true
+    wallBtn.BackgroundColor3 = Color3.fromRGB(0,200,0)  -- GREEN = ON
+    print("[WALLHACK] ENABLED - Walk through walls (floor stays solid)")
+
+    -- Protect floor
+    table.clear(floorParts)
+    for _, part in ipairs(Workspace:GetDescendants()) do
+        if part:IsA("BasePart") and isFloor(part) then
+            table.insert(floorParts, part)
+        end
+    end
+
+    -- Disable collision on non-floor parts
+    for _, part in ipairs(Workspace:GetDescendants()) do
+        if part:IsA("BasePart") 
+            and part.CanCollide 
+            and part.Parent ~= player.Character 
+            and not table.find(floorParts, part) then
+            originalCanCollide[part] = true
+            part.CanCollide = false
+        end
+    end
+
+    -- Keep player non-collidable
+    noclipConnection = RunService.Stepped:Connect(function()
+        if player.Character then
+            for _, part in ipairs(player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function disableWallHack()
+    if not wallhackEnabled then return end
+    wallhackEnabled = false
+    wallBtn.BackgroundColor3 = Color3.fromRGB(200,0,0)  -- RED = OFF
+    print("[WALLHACK] DISABLED")
+
+    -- Restore collision
+    for part, _ in pairs(originalCanCollide) do
+        if part and part.Parent then
+            part.CanCollide = true
+        end
+    end
+    originalCanCollide = {}
+    floorParts = {}
+
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+end
+
+-- Toggle WallHack on button click
+wallBtn.MouseButton1Click:Connect(function()
+    if wallhackEnabled then
+        disableWallHack()
+    else
+        enableWallHack()
+    end
+end)
+
+-------------------------------------------------
+-- MINI FRAME (Jump & Speed)
+-------------------------------------------------
+local miniFrame = nil
+local currentMode = ""
+
+local function createMiniFrame(mode)
+    currentMode = mode
+    if miniFrame and miniFrame.Parent then miniFrame:Destroy() end
+
+    miniFrame = Instance.new("Frame")
+    miniFrame.Size = UDim2.new(0,200,0,130)
+    miniFrame.Position = UDim2.new(0.5,-100,0.5,-65)
+    miniFrame.BackgroundColor3 = Color3.fromRGB(55,55,55)
+    miniFrame.BorderSizePixel = 2
+    miniFrame.BorderColor3 = Color3.fromRGB(200,200,200)
+    miniFrame.Visible = true
+    miniFrame.Parent = gui
+
+    -- Mini title
+    local miniTitle = Instance.new("Frame")
+    miniTitle.Size = UDim2.new(1,0,0,30)
+    miniTitle.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    miniTitle.Parent = miniFrame
+
+    local miniLabel = Instance.new("TextLabel")
+    miniLabel.Size = UDim2.new(1,0,1,0)
+    miniLabel.BackgroundTransparency = 1
+    miniLabel.Text = (mode == "jump") and "Set Jump Height" or "Set Walk Speed"
+    miniLabel.TextColor3 = Color3.fromRGB(255,255,255)
+    miniLabel.Font = Enum.Font.GothamBold
+    miniLabel.TextSize = 15
+    miniLabel.Parent = miniTitle
+
+    makeDraggable(miniFrame, miniTitle)
+
+    -- TextBox
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(0,160,0,35)
+    textBox.Position = UDim2.new(0.5,-80,0,45)
+    textBox.BackgroundColor3 = Color3.fromRGB(240,240,240)
+    textBox.PlaceholderText = "Enter number..."
+    textBox.Text = ""
+    textBox.Font = Enum.Font.SourceSans
+    textBox.TextSize = 18
+    textBox.Parent = miniFrame
+
+    -- Set button
+    local setBtn = Instance.new("TextButton")
+    setBtn.Size = UDim2.new(0,120,0,35)
+    setBtn.Position = UDim2.new(0.5,-60,1,-45)
+    setBtn.BackgroundColor3 = Color3.fromRGB(0,200,0)
+    setBtn.Text = "Set"
+    setBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    setBtn.Font = Enum.Font.GothamBold
+    setBtn.TextSize = 18
+    setBtn.Parent = miniFrame
+
+    -- Mini X (closes mini-frame)
+    local miniX = Instance.new("TextButton")
+    miniX.Size = UDim2.new(0,30,0,30)
+    miniX.Position = UDim2.new(1,-30,0,0)
+    miniX.BackgroundTransparency = 1
+    miniX.Text = "X"
+    miniX.TextColor3 = Color3.fromRGB(255,80,80)
+    miniX.Font = Enum.Font.GothamBold
+    miniX.TextSize = 18
+    miniX.Parent = miniTitle
+
+    miniX.MouseButton1Click:Connect(function()
+        if miniFrame then
+            miniFrame:Destroy()
+            miniFrame = nil
+            print("[GUI] Mini-frame closed via mini X")
+        end
+    end)
+
+    -- Set logic
+    setBtn.MouseButton1Click:Connect(function()
+        local num = tonumber(textBox.Text)
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+
+        if mode == "jump" then
+            if num and num >= 0 and num <= 1000 then
+                humanoid.UseJumpPower = false
+                humanoid.JumpHeight = num
+                print("[GUI] JumpHeight → " .. num)
+            end
+        elseif mode == "speed" then
+            if num and num >= 0 and num <= 500 then
+                humanoid.WalkSpeed = num
+                print("[GUI] WalkSpeed → " .. num)
+            end
+        end
+
+        -- Feedback
+        local tween = TweenService:Create(setBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(0,255,0)})
+        tween:Play()
+        tween.Completed:Wait()
+        TweenService:Create(setBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0,200,0)}):Play()
+    end)
+end
+
+-------------------------------------------------
+-- BUTTON CONNECTIONS
+-------------------------------------------------
+jumpBtn.MouseButton1Click:Connect(function() createMiniFrame("jump") end)
+speedBtn.MouseButton1Click:Connect(function() createMiniFrame("speed") end)
+
+-- X BUTTON NOW WORKS: Closes mini-frame only
+closeBtn.MouseButton1Click:Connect(function()
+    if miniFrame and miniFrame.Parent then
+        miniFrame:Destroy()
+        miniFrame = nil
+        print("[GUI] Mini-frame closed via main X")
+    end
+end)
+
+-- ESC also closes mini-frame
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if gp then return end
+    if inp.KeyCode == Enum.KeyCode.Escape and miniFrame and miniFrame.Parent then
+        miniFrame:Destroy()
+        miniFrame = nil
+    end
+end)
+
+print("[GUI] Loaded - WallHack active ONLY when GREEN")
