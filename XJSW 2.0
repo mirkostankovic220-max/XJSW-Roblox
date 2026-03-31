@@ -1,0 +1,443 @@
+local Players          = game:GetService("Players")
+local TweenService     = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService       = game:GetService("RunService")
+local Workspace        = game:GetService("Workspace")
+
+local player  = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+print("[GUI] Script started")
+
+-------------------------------------------------
+-- CREATE ScreenGui
+-------------------------------------------------
+local GUI_NAME = "NoClipGUI"
+local gui = playerGui:FindFirstChild(GUI_NAME)
+if not gui then
+    gui = Instance.new("ScreenGui")
+    gui.Name = GUI_NAME
+    gui.ResetOnSpawn = true
+    gui.Enabled = true
+    gui.Parent = playerGui
+    print("[GUI] Created ScreenGui")
+end
+
+-------------------------------------------------
+-- MAIN FRAME
+-------------------------------------------------
+local mainFrame = gui:FindFirstChild("MainFrame")
+if not mainFrame then
+    mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 260, 0, 120)
+    mainFrame.Position = UDim2.new(0.5, -130, 0.5, -60)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(45,45,45)
+    mainFrame.BorderSizePixel = 2
+    mainFrame.BorderColor3 = Color3.fromRGB(255,255,255)
+    mainFrame.Visible = true
+    mainFrame.Parent = gui
+end
+
+-- Title bar (drag handle)
+local titleBar = mainFrame:FindFirstChild("TitleBar")
+if not titleBar then
+    titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1,0,0,30)
+    titleBar.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    titleBar.Parent = mainFrame
+end
+
+local titleLabel = titleBar:FindFirstChild("TitleLabel")
+if not titleLabel then
+    titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "TitleLabel"
+    titleLabel.Size = UDim2.new(1,-60,1,0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "XJSW"
+    titleLabel.TextColor3 = Color3.fromRGB(255,255,255)
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 16
+    titleLabel.Parent = titleBar
+end
+
+-- MINIMIZE BUTTON (-)
+local minimizeBtn = titleBar:FindFirstChild("MinimizeBtn")
+if not minimizeBtn then
+    minimizeBtn = Instance.new("TextButton")
+    minimizeBtn.Name = "MinimizeBtn"
+    minimizeBtn.Size = UDim2.new(0,30,0,30)
+    minimizeBtn.Position = UDim2.new(1,-60,0,0)
+    minimizeBtn.BackgroundTransparency = 1
+    minimizeBtn.Text = "-"
+    minimizeBtn.TextColor3 = Color3.fromRGB(255,255,0)
+    minimizeBtn.Font = Enum.Font.GothamBold
+    minimizeBtn.TextSize = 22
+    minimizeBtn.Parent = titleBar
+end
+
+-- X BUTTON (closes entire GUI)
+local closeBtn = titleBar:FindFirstChild("CloseBtn")
+if not closeBtn then
+    closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseBtn"
+    closeBtn.Size = UDim2.new(0,30,0,30)
+    closeBtn.Position = UDim2.new(1,-30,0,0)
+    closeBtn.BackgroundTransparency = 1
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255,80,80)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 18
+    closeBtn.Parent = titleBar
+end
+
+-- JUMP BUTTON
+local jumpBtn = mainFrame:FindFirstChild("JumpBtn")
+if not jumpBtn then
+    jumpBtn = Instance.new("TextButton")
+    jumpBtn.Name = "JumpBtn"
+    jumpBtn.Size = UDim2.new(0,70,0,50)
+    jumpBtn.Position = UDim2.new(0,10,1,-70)
+    jumpBtn.BackgroundColor3 = Color3.fromRGB(0,170,255)
+    jumpBtn.Text = "Jump"
+    jumpBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    jumpBtn.Font = Enum.Font.GothamBold
+    jumpBtn.TextSize = 16
+    jumpBtn.Parent = mainFrame
+end
+
+-- SPEED BUTTON
+local speedBtn = mainFrame:FindFirstChild("SpeedBtn")
+if not speedBtn then
+    speedBtn = Instance.new("TextButton")
+    speedBtn.Name = "SpeedBtn"
+    speedBtn.Size = UDim2.new(0,70,0,50)
+    speedBtn.Position = UDim2.new(0.5,-35,1,-70)
+    speedBtn.BackgroundColor3 = Color3.fromRGB(255,170,0)
+    speedBtn.Text = "Speed"
+    speedBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    speedBtn.Font = Enum.Font.GothamBold
+    speedBtn.TextSize = 16
+    speedBtn.Parent = mainFrame
+end
+
+-- NOCLIP BUTTON (renamed from WallHack)
+local noclipBtn = mainFrame:FindFirstChild("NoClipBtn")
+if not noclipBtn then
+    noclipBtn = Instance.new("TextButton")
+    noclipBtn.Name = "NoClipBtn"
+    noclipBtn.Size = UDim2.new(0,70,0,50)
+    noclipBtn.Position = UDim2.new(1,-80,1,-70)
+    noclipBtn.BackgroundColor3 = Color3.fromRGB(200,0,0)
+    noclipBtn.Text = "NoClip"
+    noclipBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    noclipBtn.Font = Enum.Font.GothamBold
+    noclipBtn.TextSize = 14
+    noclipBtn.Parent = mainFrame
+end
+
+-------------------------------------------------
+-- DRAG FUNCTION
+-------------------------------------------------
+local function makeDraggable(frame, handle)
+    local dragging = false
+    local dragInput, startPos, startFramePos
+
+    local function update(input)
+        local delta = input.Position - startPos
+        frame.Position = UDim2.new(
+            startFramePos.X.Scale,
+            startFramePos.X.Offset + delta.X,
+            startFramePos.Y.Scale,
+            startFramePos.Y.Offset + delta.Y
+        )
+    end
+
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            startPos = input.Position
+            startFramePos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            update(input)
+        end
+    end)
+end
+
+makeDraggable(mainFrame, titleBar)
+
+-------------------------------------------------
+-- MINIMIZE FUNCTIONALITY
+-------------------------------------------------
+local isMinimized = false
+local originalSize = mainFrame.Size
+
+minimizeBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        mainFrame.Size = UDim2.new(0, 260, 0, 30)
+        jumpBtn.Visible = false
+        speedBtn.Visible = false
+        noclipBtn.Visible = false
+        minimizeBtn.Text = "+"
+        print("[GUI] Minimized")
+    else
+        mainFrame.Size = originalSize
+        jumpBtn.Visible = true
+        speedBtn.Visible = true
+        noclipBtn.Visible = true
+        minimizeBtn.Text = "-"
+        print("[GUI] Restored")
+    end
+end)
+
+-------------------------------------------------
+-- CLOSE BUTTON - CLOSES ENTIRE GUI
+-------------------------------------------------
+closeBtn.MouseButton1Click:Connect(function()
+    print("[GUI] GUI Closed")
+    gui:Destroy()
+end)
+
+-------------------------------------------------
+-- IMPROVED NOCLIP FUNCTIONALITY
+-------------------------------------------------
+local noclipEnabled = false
+local noclipConnection = nil
+
+local function enableNoClip()
+    if noclipEnabled then return end
+    noclipEnabled = true
+    noclipBtn.BackgroundColor3 = Color3.fromRGB(0,200,0)
+    print("[NOCLIP] ENABLED - You can walk through everything")
+
+    noclipConnection = RunService.Stepped:Connect(function()
+        local character = player.Character
+        if character then
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function disableNoClip()
+    if not noclipEnabled then return end
+    noclipEnabled = false
+    noclipBtn.BackgroundColor3 = Color3.fromRGB(200,0,0)
+    print("[NOCLIP] DISABLED")
+
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+
+    -- Restore character collision
+    local character = player.Character
+    if character then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                if part.Name == "HumanoidRootPart" or part.Name == "Head" or part.Name == "Torso" or part.Name == "UpperTorso" or part.Name == "LowerTorso" then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end
+
+noclipBtn.MouseButton1Click:Connect(function()
+    if noclipEnabled then
+        disableNoClip()
+    else
+        enableNoClip()
+    end
+end)
+
+-- Re-apply noclip when character respawns
+player.CharacterAdded:Connect(function(character)
+    if noclipEnabled then
+        wait(0.5)
+        print("[NOCLIP] Character respawned, re-applying noclip")
+    end
+end)
+
+-------------------------------------------------
+-- MINI FRAME (Jump & Speed) with 1000 LIMIT
+-------------------------------------------------
+local miniFrame = nil
+local currentMode = ""
+local MAX_LIMIT = 1000
+
+local function createMiniFrame(mode)
+    currentMode = mode
+    if miniFrame and miniFrame.Parent then miniFrame:Destroy() end
+
+    miniFrame = Instance.new("Frame")
+    miniFrame.Size = UDim2.new(0,200,0,150)
+    miniFrame.Position = UDim2.new(0.5,-100,0.5,-75)
+    miniFrame.BackgroundColor3 = Color3.fromRGB(55,55,55)
+    miniFrame.BorderSizePixel = 2
+    miniFrame.BorderColor3 = Color3.fromRGB(200,200,200)
+    miniFrame.Visible = true
+    miniFrame.Parent = gui
+
+    -- Mini title
+    local miniTitle = Instance.new("Frame")
+    miniTitle.Size = UDim2.new(1,0,0,30)
+    miniTitle.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    miniTitle.Parent = miniFrame
+
+    local miniLabel = Instance.new("TextLabel")
+    miniLabel.Size = UDim2.new(1,-30,1,0)
+    miniLabel.BackgroundTransparency = 1
+    miniLabel.Text = (mode == "jump") and "Set Jump Height" or "Set Walk Speed"
+    miniLabel.TextColor3 = Color3.fromRGB(255,255,255)
+    miniLabel.Font = Enum.Font.GothamBold
+    miniLabel.TextSize = 15
+    miniLabel.Parent = miniTitle
+
+    makeDraggable(miniFrame, miniTitle)
+
+    -- Limit label
+    local limitLabel = Instance.new("TextLabel")
+    limitLabel.Size = UDim2.new(1,0,0,15)
+    limitLabel.Position = UDim2.new(0,0,0,32)
+    limitLabel.BackgroundTransparency = 1
+    limitLabel.Text = "Max limit: " .. MAX_LIMIT
+    limitLabel.TextColor3 = Color3.fromRGB(255,200,100)
+    limitLabel.Font = Enum.Font.Gotham
+    limitLabel.TextSize = 12
+    limitLabel.Parent = miniFrame
+
+    -- TextBox
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(0,160,0,35)
+    textBox.Position = UDim2.new(0.5,-80,0,55)
+    textBox.BackgroundColor3 = Color3.fromRGB(240,240,240)
+    textBox.PlaceholderText = "Enter number (0-1000)..."
+    textBox.Text = ""
+    textBox.Font = Enum.Font.SourceSans
+    textBox.TextSize = 18
+    textBox.Parent = miniFrame
+
+    -- Error label
+    local errorLabel = Instance.new("TextLabel")
+    errorLabel.Size = UDim2.new(1,0,0,15)
+    errorLabel.Position = UDim2.new(0,0,0,92)
+    errorLabel.BackgroundTransparency = 1
+    errorLabel.Text = ""
+    errorLabel.TextColor3 = Color3.fromRGB(255,80,80)
+    errorLabel.Font = Enum.Font.Gotham
+    errorLabel.TextSize = 11
+    errorLabel.Parent = miniFrame
+
+    -- Set button
+    local setBtn = Instance.new("TextButton")
+    setBtn.Size = UDim2.new(0,120,0,35)
+    setBtn.Position = UDim2.new(0.5,-60,1,-45)
+    setBtn.BackgroundColor3 = Color3.fromRGB(0,200,0)
+    setBtn.Text = "Set"
+    setBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    setBtn.Font = Enum.Font.GothamBold
+    setBtn.TextSize = 18
+    setBtn.Parent = miniFrame
+
+    -- Mini X (closes mini-frame)
+    local miniX = Instance.new("TextButton")
+    miniX.Size = UDim2.new(0,30,0,30)
+    miniX.Position = UDim2.new(1,-30,0,0)
+    miniX.BackgroundTransparency = 1
+    miniX.Text = "X"
+    miniX.TextColor3 = Color3.fromRGB(255,80,80)
+    miniX.Font = Enum.Font.GothamBold
+    miniX.TextSize = 18
+    miniX.Parent = miniTitle
+
+    miniX.MouseButton1Click:Connect(function()
+        if miniFrame then
+            miniFrame:Destroy()
+            miniFrame = nil
+            print("[GUI] Mini-frame closed")
+        end
+    end)
+
+    -- Set logic with 1000 limit
+    setBtn.MouseButton1Click:Connect(function()
+        local num = tonumber(textBox.Text)
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        
+        if not humanoid then
+            errorLabel.Text = "No humanoid found!"
+            return
+        end
+
+        if not num then
+            errorLabel.Text = "Please enter a valid number!"
+            return
+        end
+
+        if num < 0 then
+            errorLabel.Text = "Number must be positive!"
+            return
+        end
+
+        if num > MAX_LIMIT then
+            errorLabel.Text = "Max limit is " .. MAX_LIMIT .. "!"
+            return
+        end
+
+        errorLabel.Text = ""
+
+        if mode == "jump" then
+            humanoid.UseJumpPower = false
+            humanoid.JumpHeight = num
+            print("[GUI] JumpHeight → " .. num)
+        elseif mode == "speed" then
+            humanoid.WalkSpeed = num
+            print("[GUI] WalkSpeed → " .. num)
+        end
+
+        -- Success feedback
+        local tween = TweenService:Create(setBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(0,255,0)})
+        tween:Play()
+        tween.Completed:Wait()
+        TweenService:Create(setBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0,200,0)}):Play()
+    end)
+end
+
+-------------------------------------------------
+-- BUTTON CONNECTIONS
+-------------------------------------------------
+jumpBtn.MouseButton1Click:Connect(function() createMiniFrame("jump") end)
+speedBtn.MouseButton1Click:Connect(function() createMiniFrame("speed") end)
+
+-- ESC closes mini-frame
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if gp then return end
+    if inp.KeyCode == Enum.KeyCode.Escape and miniFrame and miniFrame.Parent then
+        miniFrame:Destroy()
+        miniFrame = nil
+    end
+end)
+
+print("[GUI] Loaded - NoClip active ONLY when GREEN, Speed/Jump limited to 1000")
